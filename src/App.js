@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Phone, Euro, Users, Check, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, Euro, Users, Check, X, Bell, BellOff } from 'lucide-react';
 
 const App = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState('checking');
   
   // Update time every minute
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    checkNotificationPermission();
     return () => clearInterval(timer);
   }, []);
 
@@ -52,6 +55,118 @@ const App = () => {
         { day: 4, startHour: 17, startMin: 0, endHour: 19, endMin: 0 }
       ],
       weeklyHours: 6
+    }
+  };
+
+  const checkNotificationPermission = () => {
+    if (!('Notification' in window)) {
+      setNotificationStatus('unsupported');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+      setNotificationStatus('granted');
+      scheduleDailyNotifications();
+    } else if (Notification.permission === 'denied') {
+      setNotificationsEnabled(false);
+      setNotificationStatus('denied');
+    } else {
+      setNotificationsEnabled(false);
+      setNotificationStatus('default');
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Your browser does not support notifications.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        setNotificationStatus('granted');
+        scheduleDailyNotifications();
+        
+        new Notification('Notifications Enabled! 🎉', {
+          body: 'You\'ll receive daily reminders at 8:00 AM about your babysitting schedule.',
+          icon: '👶',
+          tag: 'test-notification'
+        });
+      } else {
+        setNotificationsEnabled(false);
+        setNotificationStatus('denied');
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+    }
+  };
+
+  const scheduleDailyNotifications = () => {
+    const scheduleNextNotification = () => {
+      const now = new Date();
+      const next8AM = new Date();
+      next8AM.setHours(8, 0, 0, 0);
+      
+      if (now >= next8AM) {
+        next8AM.setDate(next8AM.getDate() + 1);
+      }
+      
+      const timeUntil8AM = next8AM.getTime() - now.getTime();
+      
+      setTimeout(() => {
+        sendDailyNotification();
+        scheduleNextNotification();
+      }, timeUntil8AM);
+    };
+
+    scheduleNextNotification();
+  };
+
+  const sendDailyNotification = () => {
+    const todaysGig = getTodaysGig();
+    
+    if (todaysGig) {
+      const { family, schedule } = todaysGig;
+      const startTime = formatTime(schedule.startHour, schedule.startMin);
+      const endTime = formatTime(schedule.endHour, schedule.endMin);
+      
+      new Notification(`Today: ${family.name}`, {
+        body: `${startTime} - ${endTime}\n${family.address}`,
+        icon: '👶',
+        tag: 'daily-schedule',
+        requireInteraction: true
+      });
+    } else {
+      new Notification('No Babysitting Today', {
+        body: 'Enjoy your day off! 🎉',
+        icon: '☀️',
+        tag: 'daily-schedule'
+      });
+    }
+  };
+
+  const testNotification = () => {
+    const todaysGig = getTodaysGig();
+    
+    if (todaysGig) {
+      const { family, schedule } = todaysGig;
+      const startTime = formatTime(schedule.startHour, schedule.startMin);
+      const endTime = formatTime(schedule.endHour, schedule.endMin);
+      
+      new Notification(`Today: ${family.name}`, {
+        body: `${startTime} - ${endTime}\n${family.address}`,
+        icon: '👶',
+        tag: 'test-notification'
+      });
+    } else {
+      new Notification('No Babysitting Today', {
+        body: 'Enjoy your day off! 🎉',
+        icon: '☀️',
+        tag: 'test-notification'
+      });
     }
   };
 
@@ -130,6 +245,61 @@ const App = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Notifications Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-6 border border-purple-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              {notificationsEnabled ? <Bell className="mr-2 text-green-600" size={24} /> : <BellOff className="mr-2 text-gray-400" size={24} />}
+              <h2 className="text-2xl font-bold text-gray-800">Daily Notifications</h2>
+            </div>
+            {notificationsEnabled && (
+              <button
+                onClick={testNotification}
+                className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-semibold"
+              >
+                Test Now
+              </button>
+            )}
+          </div>
+
+          {notificationStatus === 'unsupported' && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">❌ Your browser doesn't support notifications.</p>
+            </div>
+          )}
+
+          {notificationStatus === 'default' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-gray-700 mb-3">Enable notifications to receive daily reminders at 8:00 AM about your schedule.</p>
+              <button
+                onClick={requestNotificationPermission}
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
+              >
+                Enable Notifications
+              </button>
+            </div>
+          )}
+
+          {notificationStatus === 'granted' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-800 mb-2">✅ Notifications are enabled!</p>
+              <p className="text-sm text-gray-600">You'll receive a daily reminder at 8:00 AM with your schedule for the day.</p>
+            </div>
+          )}
+
+          {notificationStatus === 'denied' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800 mb-2">⚠️ Notifications are blocked.</p>
+              <p className="text-sm text-gray-600">To enable them, you'll need to change your browser settings:</p>
+              <ul className="text-sm text-gray-600 mt-2 ml-4 list-disc">
+                <li>Click the lock icon in your address bar</li>
+                <li>Change notification permission to "Allow"</li>
+                <li>Refresh this page</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Today's Gig */}
