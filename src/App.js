@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Phone, Euro, Users, Check, X, Bell, BellOff } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, Euro, Users, Check, X, Bell, BellOff, ExternalLink } from 'lucide-react';
 
 const App = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -31,6 +31,10 @@ const App = () => {
         { name: 'Jack', age: 6 },
         { name: 'Stella', age: 4 }
       ],
+      pickupLocation: {
+        name: "Jack's Judo School",
+        address: '30 Rue de Seine, 92100 Boulogne-Billancourt, France'
+      },
       status: 'Confirmed',
       schedule: [
         { day: 3, startHour: 10, startMin: 0, endHour: 19, endMin: 0 }
@@ -48,7 +52,7 @@ const App = () => {
         { name: 'Julia', age: 3 },
         { name: 'Lewis', age: 6 }
       ],
-      status: 'Not confirmed',
+      status: 'Confirmed',
       schedule: [
         { day: 1, startHour: 17, startMin: 0, endHour: 19, endMin: 0 },
         { day: 2, startHour: 17, startMin: 0, endHour: 19, endMin: 0 },
@@ -56,6 +60,11 @@ const App = () => {
       ],
       weeklyHours: 6
     }
+  };
+
+  const openInGoogleMaps = (address) => {
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    window.open(mapsUrl, '_blank');
   };
 
   const checkNotificationPermission = () => {
@@ -91,7 +100,7 @@ const App = () => {
         scheduleDailyNotifications();
         
         new Notification('Notifications Enabled! 🎉', {
-          body: 'You\'ll receive daily reminders at 8:00 AM about your babysitting schedule.',
+          body: 'You\'ll receive daily reminders at 8:00 AM and early shift reminders at 10:00 PM on Tuesdays.',
           icon: '👶',
           tag: 'test-notification'
         });
@@ -105,7 +114,8 @@ const App = () => {
   };
 
   const scheduleDailyNotifications = () => {
-    const scheduleNextNotification = () => {
+    // Schedule 8 AM daily notifications
+    const schedule8AM = () => {
       const now = new Date();
       const next8AM = new Date();
       next8AM.setHours(8, 0, 0, 0);
@@ -118,11 +128,44 @@ const App = () => {
       
       setTimeout(() => {
         sendDailyNotification();
-        scheduleNextNotification();
+        schedule8AM();
       }, timeUntil8AM);
     };
 
-    scheduleNextNotification();
+    // Schedule Tuesday 10 PM notification for Wednesday shift
+    const scheduleTuesdayEvening = () => {
+      const now = new Date();
+      const nextTuesday10PM = new Date();
+      
+      // Find next Tuesday
+      const daysUntilTuesday = (2 - now.getDay() + 7) % 7;
+      nextTuesday10PM.setDate(now.getDate() + daysUntilTuesday);
+      nextTuesday10PM.setHours(22, 0, 0, 0);
+      
+      // If it's already past Tuesday 10 PM this week, schedule for next week
+      if (now >= nextTuesday10PM) {
+        nextTuesday10PM.setDate(nextTuesday10PM.getDate() + 7);
+      }
+      
+      const timeUntilTuesday10PM = nextTuesday10PM.getTime() - now.getTime();
+      
+      setTimeout(() => {
+        sendTuesdayEveningNotification();
+        scheduleTuesdayEvening();
+      }, timeUntilTuesday10PM);
+    };
+
+    schedule8AM();
+    scheduleTuesdayEvening();
+  };
+
+  const sendTuesdayEveningNotification = () => {
+    new Notification('Early Shift Tomorrow! ⏰', {
+      body: 'Wake up at 7:00 AM for BEERY family (10:00 - 19:00)\n35 BIS RUE MARCEL DASSAULT',
+      icon: '⏰',
+      tag: 'tuesday-evening-reminder',
+      requireInteraction: true
+    });
   };
 
   const sendDailyNotification = () => {
@@ -168,6 +211,14 @@ const App = () => {
         tag: 'test-notification'
       });
     }
+  };
+
+  const testTuesdayNotification = () => {
+    new Notification('Early Shift Tomorrow! ⏰', {
+      body: 'Wake up at 7:00 AM for BEERY family (10:00 - 19:00)\n35 BIS RUE MARCEL DASSAULT',
+      icon: '⏰',
+      tag: 'test-tuesday-notification'
+    });
   };
 
   const getDayName = (dayNum) => {
@@ -255,12 +306,20 @@ const App = () => {
               <h2 className="text-2xl font-bold text-gray-800">Daily Notifications</h2>
             </div>
             {notificationsEnabled && (
-              <button
-                onClick={testNotification}
-                className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-semibold"
-              >
-                Test Now
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={testNotification}
+                  className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-semibold"
+                >
+                  Test Daily
+                </button>
+                <button
+                  onClick={testTuesdayNotification}
+                  className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-sm font-semibold"
+                >
+                  Test Tuesday
+                </button>
+              </div>
             )}
           </div>
 
@@ -272,7 +331,11 @@ const App = () => {
 
           {notificationStatus === 'default' && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-gray-700 mb-3">Enable notifications to receive daily reminders at 8:00 AM about your schedule.</p>
+              <p className="text-gray-700 mb-3">Enable notifications to receive:</p>
+              <ul className="text-sm text-gray-700 ml-4 mb-3 list-disc">
+                <li>Daily reminders at 8:00 AM about your schedule</li>
+                <li>Early shift tomorrow reminder (Tuesday 10:00 PM for Wednesday's BEERY shift)</li>
+              </ul>
               <button
                 onClick={requestNotificationPermission}
                 className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
@@ -285,7 +348,10 @@ const App = () => {
           {notificationStatus === 'granted' && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <p className="text-green-800 mb-2">✅ Notifications are enabled!</p>
-              <p className="text-sm text-gray-600">You'll receive a daily reminder at 8:00 AM with your schedule for the day.</p>
+              <ul className="text-sm text-gray-600 list-disc ml-4">
+                <li>Daily reminder at 8:00 AM with your schedule</li>
+                <li>Early shift tomorrow reminder (Tuesday 10:00 PM)</li>
+              </ul>
             </div>
           )}
 
@@ -312,10 +378,14 @@ const App = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
               <h3 className="text-2xl font-bold mb-4">{todaysGig.family.name}</h3>
               <div className="space-y-3">
-                <div className="flex items-start">
+                <button
+                  onClick={() => openInGoogleMaps(todaysGig.family.address)}
+                  className="flex items-start w-full text-left hover:bg-white/10 p-2 rounded-lg transition"
+                >
                   <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
-                  <span className="text-lg">{todaysGig.family.address}</span>
-                </div>
+                  <span className="text-lg flex-1">{todaysGig.family.address}</span>
+                  <ExternalLink className="ml-2 flex-shrink-0" size={16} />
+                </button>
                 <div className="flex items-center">
                   <Clock className="mr-3" size={20} />
                   <span className="text-xl font-bold">
@@ -448,20 +518,42 @@ const App = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-4">{family.name}</h3>
               
               <div className="space-y-4">
-                <div className="flex items-start">
+                <button
+                  onClick={() => openInGoogleMaps(family.address)}
+                  className="flex items-start w-full text-left hover:bg-purple-50 p-2 rounded-lg transition"
+                >
                   <MapPin className="mr-3 mt-1 text-gray-400 flex-shrink-0" size={18} />
-                  <span className="text-sm text-gray-700">{family.address}</span>
-                </div>
+                  <span className="text-sm text-gray-700 flex-1">{family.address}</span>
+                  <ExternalLink className="ml-2 text-purple-600 flex-shrink-0" size={14} />
+                </button>
+
+                {family.pickupLocation && (
+                  <button
+                    onClick={() => openInGoogleMaps(family.pickupLocation.address)}
+                    className="flex items-start w-full text-left hover:bg-blue-50 p-2 rounded-lg transition border border-blue-200"
+                  >
+                    <MapPin className="mr-3 mt-1 text-blue-500 flex-shrink-0" size={18} />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-blue-700 mb-1">{family.pickupLocation.name}</p>
+                      <span className="text-sm text-gray-700">{family.pickupLocation.address}</span>
+                    </div>
+                    <ExternalLink className="ml-2 text-blue-600 flex-shrink-0" size={14} />
+                  </button>
+                )}
 
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Contact</p>
                   {Object.entries(family.phones).map(([type, phone]) => (
-                    <div key={type} className="flex items-center text-sm mb-1 ml-7">
+                    
+                      key={type}
+                      href={`tel:${phone}`}
+                      className="flex items-center text-sm mb-1 ml-7 hover:text-purple-600 transition"
+                    >
                       <Phone className="mr-2 text-gray-400" size={14} />
                       <span className="text-gray-700">
                         <span className="capitalize font-medium">{type}:</span> {phone}
                       </span>
-                    </div>
+                    </a>
                   ))}
                 </div>
 
