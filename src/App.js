@@ -49,7 +49,7 @@ const App = () => {
         mother: '06 04 08 21 73'
       },
       children: [
-        { name: 'Julia', age: 3 },
+        { name: 'Felicie', age: 3 },
         { name: 'Lewis', age: 6 }
       ],
       status: 'Confirmed',
