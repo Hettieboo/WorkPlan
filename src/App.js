@@ -35,6 +35,10 @@ const App = () => {
         name: "Jack's Judo School",
         address: '30 Rue de Seine, 92100 Boulogne-Billancourt, France'
       },
+      activitiesMap: {
+        name: "Kids Activities Map",
+        url: 'https://maps.app.goo.gl/f9GfZAN7JvRamCpX8'
+      },
       status: 'Confirmed',
       schedule: [
         { day: 3, startHour: 10, startMin: 0, endHour: 19, endMin: 0 }
@@ -539,6 +543,22 @@ const App = () => {
                     </div>
                     <ExternalLink className="ml-2 text-blue-600 flex-shrink-0" size={14} />
                   </button>
+                )}
+
+                {family.activitiesMap && (
+                  
+                    href={family.activitiesMap.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center w-full text-left hover:bg-green-50 p-2 rounded-lg transition border border-green-200"
+                  >
+                    <MapPin className="mr-3 text-green-500 flex-shrink-0" size={18} />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-green-700 mb-1">{family.activitiesMap.name}</p>
+                      <span className="text-xs text-gray-600">View all activity locations</span>
+                    </div>
+                    <ExternalLink className="ml-2 text-green-600 flex-shrink-0" size={14} />
+                  </a>
                 )}
 
                 <div>
